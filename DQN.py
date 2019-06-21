@@ -17,6 +17,7 @@ class DQN(nn.Module):
         self.output = nn.Linear(801, 800)
         
     def forward(self, x):
+        x = x.double()
         x = self.conv1(x)
         x = F.relu(x)
         x = self.conv2(x)
