@@ -26,7 +26,9 @@ class Agent:
         self.epsilon = epsilon  # Probability of taking a random action
         self.epsilon_decrease_rate = epsilon_decrease_rate
         self.min_epsilon = min_epsilon  # Minimum value for epsilon
-        
+        self.logger = None
+        self.load_path = None
+
         # Replay memory
         self.experiences = []
         self.training_count = 0
@@ -58,8 +60,9 @@ class Agent:
         if is_random:
             return np.random.randint(0, self.actions)
         else:
-            q_values = self.DQN.predict(state)
-            return np.argmax(q_values)
+            q_values = self.DQN.predict(state).squeeze()
+            action = torch.argmax(q_values)
+            return action.item()
 
     def get_max_q(self, state):
         """
@@ -96,7 +99,9 @@ class Agent:
         if len(self.experiences) >= self.replay_memory_size:
             self.experiences.pop(0)
         # Add a tuple (source, action, reward, dest, final) to replay memory
-        self.experiences.append(Transition(state, action, reward, new_state, final))
+        experience = Transition(state, action, reward, new_state, final)
+        # print(f'add_experience: added {experience}')
+        self.experiences.append(experience)
 
         # # Periodically log how many samples we've gathered so far
         # if (len(self.experiences) % 100 == 0) and (len(self.experiences) < self.replay_memory_size) and (self.logger is not None):
@@ -110,10 +115,14 @@ class Agent:
         :return: a batch of SARS' tuples
         """
         batch = []
-        for i in xrange(self.minibatch_size):
-            idx = np.random.randint(0, len(self.experiences) + 1)
+        for i in range(self.minibatch_size):
+            idx = np.random.randint(0, len(self.experiences))
+            experience = self.experiences[idx]
+            if experience is None:
+                print(f'sample_batch, found None')
             batch.append(self.experiences[idx])
-        return np.asarray(batch)
+        # print(f'sample_batch: returning: {batch}')
+        return batch
 
     def train(self):
         """
@@ -142,12 +151,9 @@ class Agent:
             self.logger.log('Updating target network...')
         self.DQN_target = copy.deepcopy(self.DQN)
 
-    def quit(self):
+    def save(self, epoch, epsilon):
         """
         Saves the DQN and the target DQN to file.
         """
-        if self.load_path is None:
-            if self.logger is not None:
-                self.logger.log('Quitting...')
-            self.DQN.save(append='_DQN')
-            self.DQN_target.save(append='_DQN_target')
+        self.DQN.save(epoch, epsilon, append='DQN')
+        self.DQN_target.save(epoch, epsilon, append='DQN_target')
