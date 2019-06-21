@@ -1,6 +1,8 @@
 from utils import Transition
 from DQNetwork import DQNetwork
 import numpy as np
+import copy
+import torch
 
 class Agent:
     def __init__(self,
@@ -11,7 +13,7 @@ class Agent:
                  learning_rate=0.00025,
                  discount_factor=0.9,
                  epsilon=1,
-                 epsilon_decrease_rate=0.8/1e4,
+                 epsilon_decrease_rate=(0.8/1e4),
                  min_epsilon=0.2):
                  
         # Parameters
@@ -52,7 +54,7 @@ class Agent:
             parameters
         :return: the index of (action associated to) the highest Q-value 
         """
-        is_random = (random() < self.epsilon)
+        is_random = (np.random.rand() < self.epsilon)
         if is_random:
             return np.random.randint(0, self.actions)
         else:
@@ -67,6 +69,9 @@ class Agent:
             given state
         """
         q_values = self.DQN.predict(state)
+        if type(q_values) == torch.Tensor:
+            q_values = q_values.cpu().detach().numpy()
+
         idxs = np.argwhere(q_values == np.max(q_values)).ravel()
         return np.random.choice(idxs)
 
