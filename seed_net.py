@@ -3,7 +3,7 @@ from SeedNetEnv import SeedNetEnv
 
 input_size = (4, 84, 84)
 
-epochs = int(1e6)
+epochs = int(1e6)   
 batch_size = 32
 learning_rate = 1e-4
 initial_epsilon = 1
@@ -14,11 +14,13 @@ min_buffer_size = int(10e3)
 max_buffer_size = int(50e3)
 actions = 800
 
+save_model_every_epochs = 100
+
 discount_factor = 0.9
 
 k = 5
 
-agent = Agent(actions=action,
+agent = Agent(actions=actions,
             network_input_shape=input_size,
             replay_memory_size=max_buffer_size,
             minibatch_size=batch_size,
@@ -53,4 +55,6 @@ for epoch in range(epochs):
         current_state = next_state
         total_steps += 1
         total_reward += reward
-    print(f'Epoch: {epoch}\tTotal Reward: {total_reward}\tBuffer Size: {len(agent.experiences)}')
+    print(f'Epoch: {epoch}\tFinal Reward: {reward}\tBuffer Size: {len(agent.experiences)}')
+    if epoch % save_model_every_epochs == 0 and epoch > 0:
+        agent.save(epoch, agent.epsilon)
