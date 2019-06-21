@@ -1,3 +1,7 @@
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+
 class DQNetwork:
 
     class DQN(nn.Module):
@@ -50,8 +54,12 @@ class DQNetwork:
         """
         Takes as input a batch of transitions and updates the network
         """
+        batch_input = torch.zeros(len(batch), **batch[0].source.shape)
+        y_true = torch.zeros(len(batch), self.actions)
 
-        
+        for i, experience in enumerate(batch):
+            x_train[i] = experience.state    
+
 
 
         loss = self.criterion(y_pred, y_true)
