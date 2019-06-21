@@ -1,4 +1,5 @@
 from DQN import DQN
+import torch
 
 class DQNetwork:
 
