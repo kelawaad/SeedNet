@@ -1,3 +1,16 @@
+import scipy
+import cv2 as cv
+import numpy as np
+from enum import Enum
+from tqdm import tqdm
+from pathlib import Path
+from skimage import measure
+import matplotlib.pyplot as plt
+from skimage import data, filters
+from collections import namedtuple
+from skimage.segmentation import random_walker
+
+
 class Seed(Enum):
   B = 1
   F = 2
@@ -62,7 +75,7 @@ def create_seed_mask(center, value=Seed.B, diameter=3, size=(84, 84)):
   grid = np.meshgrid(np.arange(size[0]), np.arange(size[1]))
   sum_grid = (grid[0] - center[1]) ** 2 + (grid[1] - center[0]) ** 2
   idxs = np.where((sum_grid) <= (diameter/2)**2)
-  seed_image = np.zeros_like(image)
+  seed_image = np.zeros(size)
   seed_image[idxs] = value
   return seed_image
 
@@ -122,7 +135,7 @@ def get_all_different_regions(masks, kernel_size=(5,5)):
 
   return all_masks_with_regions
 
-  def get_random_pixels(idxs, count):
+def get_random_pixels(idxs, count):
   count_idxs = idxs[0].shape[0]
   index_indices = np.arange(count_idxs)
   if count_idxs < count:
@@ -145,3 +158,34 @@ def generate_initial_seeds(all_masks_with_regions, num_sets=5):
     initial_background_seeds[i] = get_random_pixels(strong_background_region, num_sets)
     
   return initial_foreground_seeds, initial_background_seeds
+
+def calculate_reward_exp(gt_mask, pred_mask, k):
+  IoU = calculate_IoU(gt_mask, pred_mask)
+  
+  return (np.exp(k * IoU) - 1) / (np.exp(k) - 1)
+
+def calculate_reward(gt_mask_with_regions, seed_location, seed_type, gt_mask, pred_mask, k):
+  reward_exp = calculate_reward_exp(gt_mask, pred_mask, k)
+  reward = -1
+  
+  gt_type = gt_mask_with_regions[seed_location]
+  
+  if seed_type == Seed.F:
+    
+    if gt_type == Region.SF.value:
+      reward = reward_exp
+    
+    elif gt_type == Region.WF.value:
+      reward = reward_exp - 1  
+  
+  elif seed_type == Seed.B:
+    if gt_type == Region.SB.value:
+      reward = reward_exp
+  
+    elif gt_type == Region.WB.value:
+      reward = reward_exp - 1
+    
+  return reward
+
+
+  
