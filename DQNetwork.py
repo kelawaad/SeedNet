@@ -1,9 +1,8 @@
 from DQN import DQN
 import torch
+import copy
 
 class DQNetwork:
-
-    
     def __init__(self, actions, input_shape,
                  minibatch_size=32,
                  learning_rate=0.00025,
@@ -26,10 +25,21 @@ class DQNetwork:
         y_true = torch.zeros(len(batch), self.actions)
 
         for i, experience in enumerate(batch):
-            x_train[i] = experience.state    
+            x_train[i]     = experience.state    
+            new_state      = experience.new_state
+            new_state_pred = target_network.predict(new_state)
+            new_q_value    = torch.max(new_state_pred)
 
+            new_y_true = torch.zeros(self.actions)
+            if experience.final:
+                new_y_true[experience.action] = experience.reward
+            else:
+                new_y_true[experience.action] = experience.reward + \
+                                                self.discount_factor * new_q_value
 
+            y_true[i] = new_y_true
 
+        y_pred = self.model.forward(batch_input)
         loss = self.criterion(y_pred, y_true)
         self.optimizer.zero_grad()
         loss.backward()
